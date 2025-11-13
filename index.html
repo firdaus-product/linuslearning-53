@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="ms-MY">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kemahiran Pemulihan: Anggaran & Bundar (100-1000)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { box-sizing: border-box; }
+    .activity-card { min-height: 400px; }
+    .number-card { transition: all .3s ease; cursor: pointer; }
+    .number-card:hover { transform: scale(1.05); }
+    
+    @keyframes shake {
+      0% { transform: translateX(0); } 25% { transform: translateX(-5px); }
+      50% { transform: translateX(5px); } 75% { transform: translateX(-5px); }
+      100% { transform: translateX(0); }
+    }
+    .shake { animation: shake 0.5s ease; }
+
+    /* ====== GAYA: Makmal Anggaran ====== */
+    .guli-jar-ref, .guli-jar-mystery {
+      position: relative;
+      width: 160px; height: 240px; 
+      border: 5px solid #60a5fa; /* blue-400 */
+      border-top: none;
+      border-radius: 0 0 20px 20px;
+      margin: 0 auto;
+      overflow: hidden; 
+      background: #fff; 
+    }
+    .guli-jar-ref::before, .guli-jar-mystery::before {
+      content: ''; position: absolute;
+      top: -10px; left: -10px; right: -10px; height: 10px;
+      border: 5px solid #60a5fa;
+      border-radius: 10px 10px 0 0;
+      z-index: 2; 
+    }
+    .guli-fill-ref {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      width: 100%; height: 10%; /* 100/1000 */
+      background-color: #bfdbfe; /* blue-200 */
+      background-image: radial-gradient(circle, #3b82f6 30%, transparent 30%);
+      background-size: 15px 15px;
+    }
+    .guli-jar-mystery { border-color: #f87171; /* red-400 */ }
+    .guli-jar-mystery::before { border-color: #f87171; }
+    .guli-fill-mystery {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      width: 100%; height: 0%; 
+      background-color: #fecaca; /* red-200 */
+      background-image: radial-gradient(circle, #ef4444 30%, transparent 30%);
+      background-size: 15px 15px;
+      transition: height 1.5s ease-out;
+    }
+    #est-slider { width: 100%; max-width: 300px; }
+
+    /* ====== GAYA: Bukit Bundar ====== */
+    .round-line-container {
+      position: relative; width: 100%; max-width: 600px;
+      height: 40px; margin: 2rem auto; padding: 0 20px;
+    }
+    .round-line {
+      position: absolute; top: 10px; left: 0; right: 0;
+      height: 6px; background-color: #9ca3af; border-radius: 3px;
+    }
+    .round-point {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      width: 16px; height: 16px; background: white;
+      border: 4px solid #9ca3af; border-radius: 50%;
+    }
+    .round-point.start { left: 0; }
+    .round-point.end { right: 0; }
+    .round-point.peak { left: 50%; transform: translate(-50%, -50%); border-color: #f59e0b; }
+    .round-marker {
+      position: absolute; top: -10px;
+      width: 40px; height: 40px; background: #10b981;
+      border: 4px solid white; border-radius: 50%;
+      transform: translateX(-50%);
+      transition: left 1.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: bold; color: white;
+    }
+    .round-label {
+      position: absolute; top: 30px;
+      font-size: 0.9rem; font-weight: 600;
+      transform: translateX(-50%);
+    }
+
+    /* ====== GAYA BARU: Mesin Cerakin (Ganti Bina Sebutan) ====== */
+    .cerakin-slot {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 0.75rem;
+      margin-bottom: 0.5rem; max-width: 300px; margin-left: auto; margin-right: auto;
+    }
+    .cerakin-stepper {
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .cerakin-stepper button {
+      width: 3rem; height: 3rem; font-size: 1.5rem; font-weight: 600;
+      border-radius: 50%; border: none;
+      background-color: #f3f4f6; color: #374151;
+      cursor: pointer; transition: background-color 0.2s;
+    }
+    .cerakin-stepper button:hover { background-color: #e5e7eb; }
+    .cerakin-stepper button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .cerakin-value {
+      font-size: 1.75rem; font-weight: 700; width: 4rem; text-align: center;
+    }
+    #cerakin-total-box {
+      transition: all 0.3s ease;
+      padding: 1rem; border-radius: 0.75rem;
+      border: 2px solid #fbbf24; /* amber-400 */
+      background-color: #fffbeb; /* amber-50 */
+    }
+    #cerakin-total-box.success {
+      border-color: #22c55e; /* green-500 */
+      background-color: #f0fdf4; /* green-50 */
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-purple-50 min-h-full">
+
+  <div class="bg-yellow-100 border-b-4 border-yellow-300 p-4 shadow-sm sticky top-0 z-10">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-2xl">📚</span>
+        <span id="info-text" class="text-lg font-semibold text-gray-800">
+          Pilih aktiviti untuk mula belajar!
+        </span>
+      </div>
+      <button id="speak-btn"
+              class="bg-yellow-300 hover:bg-yellow-400 text-yellow-800 font-bold py-2 px-4 rounded-full text-xl transition-colors duration-200"
+              onclick="speakInfo()">
+        🔊
+      </button>
+    </div>
+  </div>
+
+  <div class="max-w-6xl mx-auto p-6">
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-6 activity-card flex items-center justify-center">
+      <div id="activity-content" class="text-center w-full">
+        <div class="py-16">
+          <div class="text-6xl mb-4">🔢</div>
+          <h2 class="text-3xl font-bold text-gray-800 mb-4">
+            Kemahiran Pemulihan: Anggaran & Bundar (100-1000)
+          </h2>
+          <p class="text-xl text-gray-600 mb-8">
+            Pilih aktiviti di bawah untuk meneroka anggaran dan pembundaran.
+          </p>
+          <div class="text-4xl">👇</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-lg p-6">
+      <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">Pilih Aktiviti</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+        <button onclick="loadActivity(1)"
+                class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition-colors duration-200">
+          🎯 Makmal Anggaran
+        </button>
+        <button onclick="loadActivity(2)"
+                class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition-colors duration-200">
+          ⛰️ Bukit Bundar (Puluh)
+        </button>
+        <button onclick="loadActivity(3)"
+                class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition-colors duration-200">
+          ⛰️ Bukit Bundar (Ratus)
+        </button>
+        <button onclick="loadActivity(4)"
+                class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition-colors duration-200">
+          ⚙️ Mesin Cerakin
+        </button>
+        <button onclick="loadActivity(5)"
+                class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition-colors duration-200">
+          📚 Klik Nombor
+        </button>
+      </div>
+
+      <div class="flex justify-center gap-4">
+        <button onclick="clearActivity()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg text-lg transition-colors duration-200">
+          🧹 Bersih
+        </button>
+        <button onclick="nextActivity()" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg text-lg transition-colors duration-200">
+          ➡️ Seterusnya
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentActivity = 0;
+    let ttsEnabled = false;
+    let currentInfo = "Pilih aktiviti untuk mula belajar!";
+    const r = (min,max) => Math.floor(Math.random()*(max-min+1))+min;
+
+    /* ====== TTS ====== */
+    function speak(text) {
+      if (!ttsEnabled) return;
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      setTimeout(() => {
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'ms-MY';
+        u.rate = 0.9; u.pitch = 1.05;
+        const voices = window.speechSynthesis.getVoices();
+        const ms = voices.find(v => v.lang === 'ms-MY' || v.lang?.startsWith('ms'));
+        if (ms) u.voice = ms;
+        window.speechSynthesis.speak(u);
+      }, 100);
+    }
+    function setInfo(text) { currentInfo = text; document.getElementById('info-text').textContent = text; }
+    function speakInfo() {
+      if (!ttsEnabled) {
+        ttsEnabled = true;
+        const btn = document.getElementById('speak-btn');
+        btn.classList.add('bg-green-300', 'hover:bg-green-400');
+        btn.classList.remove('bg-yellow-300', 'hover:bg-yellow-400');
+      }
+      speak(currentInfo);
+    }
+
+    /* ====== Router (DIKEMASKINI) ====== */
+    function loadActivity(n) {
+      currentActivity = n;
+      const content = document.getElementById('activity-content');
+      if (n === 1) return loadEstimationLab(content);
+      if (n === 2) return loadRoundingHill(content, 'puluh');
+      if (n === 3) return loadRoundingHill(content, 'ratus');
+      // DIUBAH: Memanggil fungsi baru
+      if (n === 4) return loadDeconMachine(content); 
+      if (n === 5) return loadClickNumberActivity(content);
+    }
+
+    /* ====== Aktiviti 1: Makmal Anggaran ====== */
+    function loadEstimationLab(content) {
+      setInfo("Lihat guli di balang kanan. Guna 'slider' untuk agak jumlahnya.");
+      content.innerHTML = `
+        <h3 class="text-2xl font-bold text-blue-600 mb-6">🎯 Makmal Anggaran</h3>
+        <div class="flex flex-col md:flex-row items-center justify-center gap-8 mb-6">
+          <div class="text-center">
+            <div class="guli-jar-ref"><div class="guli-fill-ref"></div></div>
+            <div class="text-lg font-semibold text-blue-700 mt-2">Ini 100 Guli</div>
+          </div>
+          <div class="text-center">
+            <div id="jar-mystery" class="guli-jar-mystery"><div id="guli-fill" class="guli-fill-mystery"></div></div>
+            <div class="text-lg font-semibold text-red-700 mt-2">Agak Anda?</div>
+          </div>
+        </div>
+        <div class="max-w-md mx-auto">
+          <div class="text-center mb-4">
+            <label for="est-slider" class="text-lg font-semibold text-gray-700">Anggaran Saya:</label>
+            <div id="est-label" class="text-3xl font-bold text-gray-900">100</div>
+          </div>
+          <input type="range" id="est-slider" min="100" max="1000" value="100" step="10" class="mx-auto"
+                 oninput="document.getElementById('est-label').textContent = this.value">
+        </div>
+        <div id="est-result" class="mt-6 text-xl font-semibold min-h-8"></div>
+        <div class="mt-4">
+          <button id="est-check-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl text-lg font-bold">✅ Semak Anggaran</button>
+          <button id="est-new-btn" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-xl text-lg font-bold hidden">🔄 Cuba Lagi</button>
+        </div>
+      `;
+      setupEstimationGame();
+    }
+    
+    function setupEstimationGame() {
+      const targetAnswer = r(120, 990); 
+      const guliFill = document.getElementById('guli-fill');
+      const slider = document.getElementById('est-slider');
+      const label = document.getElementById('est-label');
+      const checkBtn = document.getElementById('est-check-btn');
+      const newBtn = document.getElementById('est-new-btn');
+      const resultEl = document.getElementById('est-result');
+      const percentFill = (targetAnswer / 1000) * 100;
+      guliFill.style.transition = 'none'; 
+      guliFill.style.height = `${percentFill}%`; 
+      slider.disabled = false;
+      checkBtn.disabled = false;
+      checkBtn.classList.remove('hidden');
+      newBtn.classList.add('hidden');
+      resultEl.textContent = "";
+      label.textContent = slider.value;
+      checkBtn.onclick = () => {
+        const userGuess = parseInt(slider.value);
+        const diff = Math.abs(userGuess - targetAnswer);
+        slider.disabled = true;
+        checkBtn.disabled = true;
+        checkBtn.classList.add('hidden');
+        newBtn.classList.remove('hidden');
+        let msg;
+        if (diff <= 50) {
+          msg = `Hebat! Tekaan anda (${userGuess}) sangat hampir! Jawapannya ${targetAnswer}.`;
+          resultEl.className = "mt-6 text-xl font-semibold text-green-600";
+        } else if (diff <= 150) {
+          msg = `Bagus! Tekaan anda (${userGuess}) agak dekat. Jawapannya ${targetAnswer}.`;
+          resultEl.className = "mt-6 text-xl font-semibold text-yellow-600";
+        } else {
+          msg = `Tekaan anda (${userGuess}) agak jauh. Jawapan sebenar ialah ${targetAnswer}.`;
+          resultEl.className = "mt-6 text-xl font-semibold text-red-600";
+        }
+        resultEl.textContent = msg;
+        setInfo(msg); speak(msg);
+      };
+      newBtn.onclick = () => setupEstimationGame();
+    }
+
+    /* ====== Aktiviti 2 & 3: Bukit Bundar ====== */
+    function loadRoundingHill(content, type) {
+      const title = type === 'puluh' ? '⛰️ Bukit Bundar (Puluh)' : '⛰️ Bukit Bundar (Ratus)';
+      const color = type === 'puluh' ? 'green' : 'purple';
+      setInfo(`Lihat nombor di atas bukit. Tekan 'Bundarkan!' untuk lihat ia bergolek.`);
+      content.innerHTML = `
+        <h3 class="text-2xl font-bold text-${color}-600 mb-6">${title}</h3>
+        <div class="text-center mb-4">
+          <div class="text-lg text-gray-600">Nombor untuk dibundarkan:</div>
+          <div id="r-number" class="text-6xl font-bold text-gray-800">...</div>
+        </div>
+        <div class="round-line-container">
+          <div class="round-line"></div>
+          <div class="round-point start"></div>
+          <span id="r-start" class="round-label" style="left: 0;">0</span>
+          <div class="round-point peak"></div>
+          <span id="r-peak" class="round-label" style="left: 50%;">Puncak (5)</span>
+          <div class="round-point end"></div>
+          <span id="r-end" class="round-label" style="right: -20px; left: auto; transform: none;">10</span>
+          <div id="r-marker" class="round-marker" style="left: 50%;">...</div>
+        </div>
+        <div id="r-result" class="mt-12 text-xl font-semibold min-h-8 text-center"></div>
+        <div class="mt-4 text-center">
+          <button id="r-run-btn" class="bg-${color}-500 hover:bg-${color}-600 text-white px-6 py-3 rounded-xl text-lg font-bold">🚀 Bundarkan!</button>
+          <button id="r-new-btn" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-xl text-lg font-bold hidden">🔄 Soalan Baharu</button>
+        </div>
+      `;
+      setupRoundingGame(type);
+    }
+
+    function setupRoundingGame(type) {
+      let num, start, end, peak, correctRounded;
+      if (type === 'puluh') {
+        num = r(101, 998); 
+        start = Math.floor(num / 10) * 10;
+        end = start + 10;
+        peak = start + 5;
+        correctRounded = (num >= peak) ? end : start;
+      } else { 
+        num = r(101, 998);
+        start = Math.floor(num / 100) * 100;
+        end = start + 100;
+        peak = start + 50;
+        correctRounded = (num >= peak) ? end : start;
+      }
+      const runBtn = document.getElementById('r-run-btn');
+      runBtn.dataset.answer = correctRounded;
+      runBtn.dataset.num = num;
+      document.getElementById('r-number').textContent = num;
+      document.getElementById('r-start').textContent = start;
+      document.getElementById('r-end').textContent = end;
+      document.getElementById('r-peak').textContent = `Puncak (${peak})`;
+      const marker = document.getElementById('r-marker');
+      marker.textContent = num;
+      const markerPos = ((num - start) / (end - start)) * 100;
+      marker.style.transition = 'none'; 
+      marker.style.left = `${markerPos}%`;
+      const newBtn = document.getElementById('r-new-btn');
+      const resultEl = document.getElementById('r-result');
+      runBtn.disabled = false;
+      runBtn.classList.remove('hidden');
+      newBtn.classList.add('hidden');
+      resultEl.textContent = "";
+      runBtn.onclick = () => {
+        const answer = parseInt(runBtn.dataset.answer);
+        const targetPos = (answer === end) ? '100%' : '0%';
+        marker.style.transition = 'left 1.5s cubic-bezier(0.68, -0.55, 0.27, 1.55)';
+        marker.style.left = targetPos;
+        runBtn.disabled = true;
+        runBtn.classList.add('hidden');
+        newBtn.classList.remove('hidden');
+        const msg = `${num} dibundarkan menjadi ${answer}!`;
+        resultEl.textContent = msg;
+        setInfo(msg); speak(msg);
+      };
+      newBtn.onclick = () => setupRoundingGame(type);
+    }
+    
+    /* ====== Aktiviti 4: Mesin Cerakin (BARU) ====== */
+    function loadDeconMachine(content) {
+      setInfo("Guna butang + / - untuk padankan 'Jumlah Anda' dengan 'Nombor Sasaran'.");
+      content.innerHTML = `
+        <h3 class="text-2xl font-bold text-orange-600 mb-6">⚙️ Mesin Cerakin Nombor</h3>
+        
+        <div class="bg-gray-50 rounded-2xl p-6 max-w-sm mx-auto mb-6">
+          <div class="text-sm uppercase tracking-wide text-gray-500">Nombor Sasaran</div>
+          <div id="cerakin-target" class="text-7xl font-black text-gray-900 leading-none">...</div>
+        </div>
+
+        <div class="max-w-sm mx-auto">
+          <div class="cerakin-slot">
+            <span class="text-lg font-semibold text-gray-600">RATUS</span>
+            <div class="cerakin-stepper">
+              <button id="r-minus">-</button>
+              <span id="r-val" class="cerakin-value text-orange-700">0</span>
+              <button id="r-plus">+</button>
+            </div>
+          </div>
+          <div class="cerakin-slot">
+            <span class="text-lg font-semibold text-gray-600">PULUH</span>
+            <div class="cerakin-stepper">
+              <button id="p-minus">-</button>
+              <span id="p-val" class="cerakin-value text-orange-700">0</span>
+              <button id="p-plus">+</button>
+            </div>
+          </div>
+          <div class="cerakin-slot">
+            <span class="text-lg font-semibold text-gray-600">SA</span>
+            <div class="cerakin-stepper">
+              <button id="s-minus">-</button>
+              <span id="s-val" class="cerakin-value text-orange-700">0</span>
+              <button id="s-plus">+</button>
+            </div>
+          </div>
+        </div>
+        
+        <div id="cerakin-total-box" class="max-w-sm mx-auto mt-6 text-center">
+          <div class="text-sm font-semibold text-gray-600">Jumlah Anda:</div>
+          <div id="cerakin-calc" class="text-lg text-gray-500">0 + 0 + 0</div>
+          <div id="cerakin-total" class="text-4xl font-bold text-gray-800">= 0</div>
+        </div>
+
+        <div class="mt-6 text-center">
+          <button id="cerakin-new" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl">🔄 Nombor Baharu</button>
+        </div>
+      `;
+
+      // Logik JavaScript untuk Mesin Cerakin
+      const targetNum = r(101, 999);
+      let currentRatus = 0;
+      let currentPuluh = 0;
+      let currentSa = 0;
+
+      // Dapatkan Elemen
+      const targetEl = document.getElementById('cerakin-target');
+      const rVal = document.getElementById('r-val'), pVal = document.getElementById('p-val'), sVal = document.getElementById('s-val');
+      const rPlus = document.getElementById('r-plus'), rMinus = document.getElementById('r-minus');
+      const pPlus = document.getElementById('p-plus'), pMinus = document.getElementById('p-minus');
+      const sPlus = document.getElementById('s-plus'), sMinus = document.getElementById('s-minus');
+      const totalBoxEl = document.getElementById('cerakin-total-box');
+      const calcEl = document.getElementById('cerakin-calc');
+      const totalEl = document.getElementById('cerakin-total');
+      const newBtn = document.getElementById('cerakin-new');
+      
+      const allSteppers = [rPlus, rMinus, pPlus, pMinus, sPlus, sMinus];
+
+      // Fungsi 'Update' Teras
+      function updateDisplay() {
+        let total = currentRatus + currentPuluh + currentSa;
+        
+        // Kemaskini paparan nilai
+        rVal.textContent = currentRatus;
+        pVal.textContent = currentPuluh;
+        sVal.textContent = currentSa;
+        
+        // Kemaskini paparan jumlah
+        calcEl.textContent = `${currentRatus} + ${currentPuluh} + ${currentSa}`;
+        totalEl.textContent = `= ${total}`;
+        
+        // Urus status butang
+        rMinus.disabled = (currentRatus === 0);
+        rPlus.disabled = (currentRatus === 900);
+        pMinus.disabled = (currentPuluh === 0);
+        pPlus.disabled = (currentPuluh === 90);
+        sMinus.disabled = (currentSa === 0);
+        sPlus.disabled = (currentSa === 9);
+        
+        // Semak jika menang
+        if (total === targetNum) {
+          totalBoxEl.classList.add('success');
+          totalEl.textContent = `= ${total} (Padan!)`;
+          const msg = `Syabas! ${currentRatus} tambah ${currentPuluh} tambah ${currentSa} ialah ${totalNum}.`;
+          setInfo(msg); speak(msg);
+          allSteppers.forEach(btn => btn.disabled = true);
+        } else {
+          totalBoxEl.classList.remove('success');
+          setInfo("Teruskan menambah nilai sehingga jumlah anda padan dengan nombor sasaran.");
+        }
+      }
+
+      // Pasang Event Listeners
+      rPlus.onclick = () => { currentRatus += 100; updateDisplay(); }
+      rMinus.onclick = () => { currentRatus -= 100; updateDisplay(); }
+      pPlus.onclick = () => { currentPuluh += 10; updateDisplay(); }
+      pMinus.onclick = () => { currentPuluh -= 10; updateDisplay(); }
+      sPlus.onclick = () => { currentSa += 1; updateDisplay(); }
+      sMinus.onclick = () => { currentSa -= 1; updateDisplay(); }
+      
+      newBtn.onclick = () => loadDeconMachine(content); // Muat semula aktiviti
+
+      // Persediaan Awal
+      targetEl.textContent = targetNum;
+      updateDisplay();
+    }
+
+
+    /* ====== Aktiviti 5: Klik Nombor ====== */
+    function loadClickNumberActivity(content) {
+      setInfo("Klik mana-mana nombor untuk meneroka cara ia dibundarkan.");
+      const numbers = [121, 289, 135, 398, 750, 991];
+      content.innerHTML = `
+        <h3 class="text-2xl font-bold text-red-600 mb-6">📚 Klik Nombor untuk Belajar</h3>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+          ${numbers.map(num => `
+            <div class="number-card bg-red-100 hover:bg-red-200 border-2 border-red-300 rounded-xl p-6 text-center"
+                 onclick="clickNumber(${num})">
+              <div class="text-4xl font-bold text-red-800">${num}</div>
+            </div>
+          `).join('')}
+        </div>
+        <div id="number-info" class="mt-6 p-4 bg-red-50 rounded-lg text-center text-lg font-semibold text-red-800 min-h-16">
+          Sentuh nombor untuk meneroka pembundaran.
+        </div>
+      `;
+    }
+    
+    function clickNumber(num) {
+      const roundedTen = Math.round(num / 10) * 10;
+      const roundedHundred = Math.round(num / 100) * 100;
+      const msg = `Nombor ${num}. Dibundar kepada puluh terdekat: ${roundedTen}. Dibundar kepada ratus terdekat: ${roundedHundred}.`;
+      document.getElementById('number-info').textContent = msg; 
+      setInfo(msg); 
+      speak(msg);
+    }
+
+    /* ====== Kawalan Umum ====== */
+    function clearActivity() {
+      currentActivity = 0;
+      document.getElementById('activity-content').innerHTML = `
+        <div class="text-center py-16">
+          <div class="text-6xl mb-4">🔢</div>
+          <h2 class="text-3xl font-bold text-gray-800 mb-4">Kemahiran Pemulihan: Anggaran & Bundar (100-1000)</h2>
+          <p class="text-xl text-gray-600 mb-8">Pilih aktiviti di bawah untuk meneroka anggaran dan pembundaran.</p>
+          <div class="text-4xl">👇</div>
+        </div>
+      `;
+      setInfo("Pilih aktiviti untuk mula belajar!");
+    }
+    
+    function nextActivity() {
+      if (currentActivity === 0) return loadActivity(1);
+      if (currentActivity < 5) return loadActivity(currentActivity + 1);
+      return loadActivity(1); 
+    }
+
+    if ('speechSynthesis' in window) {
+      setInterval(() => { if (window.speechSynthesis.paused) window.speechSynthesis.resume(); }, 1000);
+    }
+  </script>
+</body>
+</html>
