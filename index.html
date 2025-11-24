@@ -3,559 +3,589 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Kemahiran Pemulihan: Anggaran & Bundar (100-1000)</title>
+  <title>Kemahiran Pemulihan: Anggaran & Bundar</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
   <style>
-    body { box-sizing: border-box; }
-    .activity-card { min-height: 400px; }
-    .number-card { transition: all .3s ease; cursor: pointer; }
-    .number-card:hover { transform: scale(1.05); }
+    /* --- UI STYLE (TEMA HIJAU KONSISTEN) --- */
+    body { 
+        font-family: 'Fredoka', sans-serif; 
+        background-color: #f0fdf4; 
+        background-image: radial-gradient(#86efac 2px, transparent 2px); 
+        background-size: 30px 30px; 
+    }
     
-    @keyframes shake {
-      0% { transform: translateX(0); } 25% { transform: translateX(-5px); }
-      50% { transform: translateX(5px); } 75% { transform: translateX(-5px); }
-      100% { transform: translateX(0); }
+    /* Card Container */
+    .game-card { 
+        background: white; 
+        border: 4px solid #475569; 
+        box-shadow: 8px 8px 0px #00000020; 
+        border-radius: 1.5rem; 
+        min-height: 600px; 
+        position: relative;
     }
-    .shake { animation: shake 0.5s ease; }
+    
+    /* Buttons 3D */
+    .btn-3d { 
+        transition: all 0.1s; 
+        border-bottom-width: 6px; 
+        border-color: rgba(0,0,0,0.2); 
+        transform: translateY(0); 
+        cursor: pointer; 
+        display: inline-block; 
+    }
+    .btn-3d:active:not(:disabled) { 
+        transform: translateY(4px); 
+        border-bottom-width: 2px; 
+        box-shadow: none; 
+    }
+    .btn-3d:disabled { opacity: 0.6; cursor: not-allowed; border-bottom-width: 6px; filter: grayscale(100%); }
 
-    /* ====== GAYA: Makmal Anggaran ====== */
-    .guli-jar-ref, .guli-jar-mystery {
-      position: relative;
-      width: 160px; height: 240px; 
-      border: 5px solid #60a5fa; /* blue-400 */
-      border-top: none;
-      border-radius: 0 0 20px 20px;
-      margin: 0 auto;
-      overflow: hidden; 
-      background: #fff; 
-    }
-    .guli-jar-ref::before, .guli-jar-mystery::before {
-      content: ''; position: absolute;
-      top: -10px; left: -10px; right: -10px; height: 10px;
-      border: 5px solid #60a5fa;
-      border-radius: 10px 10px 0 0;
-      z-index: 2; 
-    }
-    .guli-fill-ref {
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      width: 100%; height: 10%; /* 100/1000 */
-      background-color: #bfdbfe; /* blue-200 */
-      background-image: radial-gradient(circle, #3b82f6 30%, transparent 30%);
-      background-size: 15px 15px;
-    }
-    .guli-jar-mystery { border-color: #f87171; /* red-400 */ }
-    .guli-jar-mystery::before { border-color: #f87171; }
-    .guli-fill-mystery {
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      width: 100%; height: 0%; 
-      background-color: #fecaca; /* red-200 */
-      background-image: radial-gradient(circle, #ef4444 30%, transparent 30%);
-      background-size: 15px 15px;
-      transition: height 1.5s ease-out;
-    }
-    #est-slider { width: 100%; max-width: 300px; }
+    /* Animation */
+    .shake { animation: shake 0.4s ease-in-out; }
+    @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+    
+    /* --- STYLES KHUSUS --- */
 
-    /* ====== GAYA: Bukit Bundar ====== */
-    .round-line-container {
-      position: relative; width: 100%; max-width: 600px;
-      height: 40px; margin: 2rem auto; padding: 0 20px;
+    /* 1. Makmal Anggaran (Jar) */
+    .jar-container {
+        width: 140px; height: 220px;
+        border: 6px solid #94a3b8; border-top: none; border-radius: 0 0 2rem 2rem;
+        background: white; position: relative; margin: 0 auto; overflow: hidden;
+        box-shadow: inset 5px 5px 10px rgba(0,0,0,0.05);
     }
-    .round-line {
-      position: absolute; top: 10px; left: 0; right: 0;
-      height: 6px; background-color: #9ca3af; border-radius: 3px;
+    .jar-lid {
+        width: 150px; height: 20px; background: #64748b;
+        position: absolute; top: -20px; left: -11px; border-radius: 4px;
     }
-    .round-point {
-      position: absolute; top: 50%; transform: translateY(-50%);
-      width: 16px; height: 16px; background: white;
-      border: 4px solid #9ca3af; border-radius: 50%;
+    .guli-fill {
+        position: absolute; bottom: 0; left: 0; width: 100%;
+        background-color: #fca5a5; background-image: radial-gradient(#ef4444 20%, transparent 20%);
+        background-size: 15px 15px; transition: height 1s ease-out;
     }
-    .round-point.start { left: 0; }
-    .round-point.end { right: 0; }
-    .round-point.peak { left: 50%; transform: translate(-50%, -50%); border-color: #f59e0b; }
-    .round-marker {
-      position: absolute; top: -10px;
-      width: 40px; height: 40px; background: #10b981;
-      border: 4px solid white; border-radius: 50%;
-      transform: translateX(-50%);
-      transition: left 1.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-      display: flex; align-items: center; justify-content: center;
-      font-weight: bold; color: white;
+    .guli-fill.ref { background-color: #93c5fd; background-image: radial-gradient(#3b82f6 20%, transparent 20%); }
+
+    /* 2. Bukit Bundar (Hill) - FIXED POSITIONING */
+    .hill-container { position: relative; width: 100%; height: 200px; margin-bottom: 2rem; overflow: visible; }
+    .hill-svg { width: 100%; height: 100%; overflow: visible; }
+    .hill-path { fill: none; stroke: #cbd5e1; stroke-width: 8; stroke-linecap: round; }
+    
+    /* Titik Statik (Start, End, Peak) */
+    .hill-point { 
+        width: 20px; height: 20px; 
+        background: white; border: 5px solid #64748b; border-radius: 50%; 
+        position: absolute; z-index: 10; 
+        transform: translate(-50%, 50%); /* Center point on line */
     }
-    .round-label {
-      position: absolute; top: 30px;
-      font-size: 0.9rem; font-weight: 600;
-      transform: translateX(-50%);
+    
+    /* Label Titik */
+    .hill-label {
+        position: absolute; transform: translate(-50%, 100%);
+        font-weight: bold; color: #64748b; font-size: 1.2rem; bottom: -10px;
+    }
+    
+    /* Bola Bergerak */
+    .hill-ball {
+        width: 60px; height: 60px; background: #3b82f6;
+        border: 4px solid white; border-radius: 50%;
+        position: absolute; z-index: 20;
+        display: flex; align-items: center; justify-content: center;
+        color: white; font-weight: bold; font-size: 1.4rem;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        transition: left 1.5s cubic-bezier(0.45, 0, 0.55, 1), bottom 1.5s cubic-bezier(0.45, 0, 0.55, 1), background-color 0.3s;
+        transform: translate(-50%, 50%); /* Center ball on line */
     }
 
-    /* ====== GAYA BARU: Mesin Cerakin (Ganti Bina Sebutan) ====== */
-    .cerakin-slot {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 0.75rem;
-      margin-bottom: 0.5rem; max-width: 300px; margin-left: auto; margin-right: auto;
+    /* 3. Mesin Cerakin */
+    .cerakin-row {
+        display: flex; align-items: center; justify-content: space-between;
+        background: white; border: 3px solid #e2e8f0; border-radius: 1rem;
+        padding: 1rem; margin-bottom: 1rem;
     }
-    .cerakin-stepper {
-      display: flex; align-items: center; gap: 0.5rem;
+    .cerakin-ctrl {
+        width: 40px; height: 40px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        color: white; font-weight: bold; font-size: 1.5rem; cursor: pointer;
+        transition: transform 0.1s; box-shadow: 0 3px 0 rgba(0,0,0,0.2);
+        border: none;
     }
-    .cerakin-stepper button {
-      width: 3rem; height: 3rem; font-size: 1.5rem; font-weight: 600;
-      border-radius: 50%; border: none;
-      background-color: #f3f4f6; color: #374151;
-      cursor: pointer; transition: background-color 0.2s;
-    }
-    .cerakin-stepper button:hover { background-color: #e5e7eb; }
-    .cerakin-stepper button:disabled { opacity: 0.4; cursor: not-allowed; }
-    .cerakin-value {
-      font-size: 1.75rem; font-weight: 700; width: 4rem; text-align: center;
-    }
-    #cerakin-total-box {
-      transition: all 0.3s ease;
-      padding: 1rem; border-radius: 0.75rem;
-      border: 2px solid #fbbf24; /* amber-400 */
-      background-color: #fffbeb; /* amber-50 */
-    }
-    #cerakin-total-box.success {
-      border-color: #22c55e; /* green-500 */
-      background-color: #f0fdf4; /* green-50 */
-    }
+    .cerakin-ctrl:active { transform: translateY(3px); box-shadow: none; }
+    .cerakin-ctrl.plus { background-color: #22c55e; }
+    .cerakin-ctrl.minus { background-color: #ef4444; }
+
   </style>
 </head>
-<body class="bg-gradient-to-br from-blue-50 to-purple-50 min-h-full">
+<body class="min-h-screen text-slate-800 pb-10">
 
-  <div class="bg-yellow-100 border-b-4 border-yellow-300 p-4 shadow-sm sticky top-0 z-10">
-    <div class="max-w-6xl mx-auto flex items-center justify-between">
+  <div class="fixed top-4 left-0 right-0 z-50 px-4 pointer-events-none">
+    <div class="max-w-4xl mx-auto bg-green-400 border-4 border-green-600 rounded-full px-6 py-3 shadow-xl flex items-center justify-between pointer-events-auto transform hover:scale-[1.01] transition-transform">
       <div class="flex items-center gap-3">
-        <span class="text-2xl">📚</span>
-        <span id="info-text" class="text-lg font-semibold text-gray-800">
-          Pilih aktiviti untuk mula belajar!
-        </span>
+        <span class="text-3xl animate-bounce">💯</span>
+        <span id="info-text" class="text-xl font-bold text-green-900 leading-none mt-1">Anggaran & Bundar</span>
       </div>
-      <button id="speak-btn"
-              class="bg-yellow-300 hover:bg-yellow-400 text-yellow-800 font-bold py-2 px-4 rounded-full text-xl transition-colors duration-200"
-              onclick="speakInfo()">
-        🔊
-      </button>
+      <button id="speak-btn" onclick="speakInfo()" class="bg-white hover:bg-green-50 text-green-600 border-2 border-green-200 rounded-full p-2 transition-colors shadow-sm">🔊</button>
     </div>
   </div>
+  <div class="h-24"></div>
 
-  <div class="max-w-6xl mx-auto p-6">
-    <div class="bg-white rounded-xl shadow-lg p-6 mb-6 activity-card flex items-center justify-center">
-      <div id="activity-content" class="text-center w-full">
-        <div class="py-16">
-          <div class="text-6xl mb-4">🔢</div>
-          <h2 class="text-3xl font-bold text-gray-800 mb-4">
-            Kemahiran Pemulihan: Anggaran & Bundar (100-1000)
-          </h2>
-          <p class="text-xl text-gray-600 mb-8">
-            Pilih aktiviti di bawah untuk meneroka anggaran dan pembundaran.
-          </p>
-          <div class="text-4xl">👇</div>
+  <div class="max-w-5xl mx-auto p-4">
+    
+    <div class="game-card p-6 mb-8 flex items-center justify-center">
+        <div id="activity-content" class="w-full relative z-10">
+            <div class="py-10 text-center">
+                <div class="text-8xl mb-6 animate-pulse">📏</div>
+                <h2 class="text-5xl font-bold text-emerald-600 mb-4">Kemahiran Pemulihan</h2>
+                <p class="text-2xl text-slate-500 mb-8 font-semibold">Belajar Mengagak dan Membundarkan Nombor</p>
+                <div class="text-4xl animate-bounce">👇</div>
+            </div>
         </div>
-      </div>
     </div>
 
-    <div class="bg-white rounded-xl shadow-lg p-6">
-      <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">Pilih Aktiviti</h3>
-      <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
-        <button onclick="loadActivity(1)"
-                class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition-colors duration-200">
-          🎯 Makmal Anggaran
-        </button>
-        <button onclick="loadActivity(2)"
-                class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition-colors duration-200">
-          ⛰️ Bukit Bundar (Puluh)
-        </button>
-        <button onclick="loadActivity(3)"
-                class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition-colors duration-200">
-          ⛰️ Bukit Bundar (Ratus)
-        </button>
-        <button onclick="loadActivity(4)"
-                class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition-colors duration-200">
-          ⚙️ Mesin Cerakin
-        </button>
-        <button onclick="loadActivity(5)"
-                class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition-colors duration-200">
-          📚 Klik Nombor
-        </button>
+    <div class="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg p-6 border-2 border-white">
+      <h3 class="text-2xl font-bold text-slate-700 mb-4 text-center">🎮 Pilih Aktiviti</h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+        <button onclick="loadActivity(1)" class="btn-3d bg-blue-500 text-white font-bold py-4 px-2 rounded-xl text-lg">🎯 Makmal Anggaran</button>
+        <button onclick="loadActivity(2)" class="btn-3d bg-emerald-500 text-white font-bold py-4 px-2 rounded-xl text-lg">⛰️ Bundar Puluh</button>
+        <button onclick="loadActivity(3)" class="btn-3d bg-violet-500 text-white font-bold py-4 px-2 rounded-xl text-lg">⛰️ Bundar Ratus</button>
+        <button onclick="loadActivity(4)" class="btn-3d bg-orange-500 text-white font-bold py-4 px-2 rounded-xl text-lg">⚙️ Mesin Cerakin</button>
+        <button onclick="loadActivity(5)" class="btn-3d bg-rose-500 text-white font-bold py-4 px-2 rounded-xl text-lg">📚 Klik Nombor</button>
       </div>
 
-      <div class="flex justify-center gap-4">
-        <button onclick="clearActivity()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg text-lg transition-colors duration-200">
-          🧹 Bersih
-        </button>
-        <button onclick="nextActivity()" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg text-lg transition-colors duration-200">
-          ➡️ Seterusnya
-        </button>
+      <div class="flex justify-center gap-4 border-t-2 border-slate-100 pt-6">
+        <button onclick="clearActivity()" class="btn-3d bg-slate-400 text-white font-bold py-2 px-6 rounded-full text-lg">🏠 Menu</button>
+        <button onclick="nextActivity()" class="btn-3d bg-indigo-500 text-white font-bold py-2 px-8 rounded-full text-xl">Seterusnya ➡️</button>
       </div>
     </div>
   </div>
 
   <script>
+    /* --- STANDARD HELPERS --- */
     let currentActivity = 0;
     let ttsEnabled = false;
-    let currentInfo = "Pilih aktiviti untuk mula belajar!";
+    let currentInfo = "Pilih aktiviti untuk mula.";
     const r = (min,max) => Math.floor(Math.random()*(max-min+1))+min;
 
-    /* ====== TTS ====== */
-    function speak(text) {
-      if (!ttsEnabled) return;
-      if (!('speechSynthesis' in window)) return;
-      window.speechSynthesis.cancel();
-      setTimeout(() => {
-        const u = new SpeechSynthesisUtterance(text);
-        u.lang = 'ms-MY';
-        u.rate = 0.9; u.pitch = 1.05;
-        const voices = window.speechSynthesis.getVoices();
-        const ms = voices.find(v => v.lang === 'ms-MY' || v.lang?.startsWith('ms'));
-        if (ms) u.voice = ms;
-        window.speechSynthesis.speak(u);
-      }, 100);
+    function triggerWin() { confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } }); }
+    
+    function speak(text) { 
+        if (!ttsEnabled || !('speechSynthesis' in window)) return; 
+        window.speechSynthesis.cancel(); 
+        const u = new SpeechSynthesisUtterance(text); 
+        u.lang = 'ms-MY'; u.rate = 0.9; u.pitch = 1.1; 
+        const voices = window.speechSynthesis.getVoices(); 
+        const ms = voices.find(v => v.lang === 'ms-MY' || v.lang?.startsWith('ms')); 
+        if (ms) u.voice = ms; 
+        window.speechSynthesis.speak(u); 
     }
-    function setInfo(text) { currentInfo = text; document.getElementById('info-text').textContent = text; }
-    function speakInfo() {
-      if (!ttsEnabled) {
-        ttsEnabled = true;
-        const btn = document.getElementById('speak-btn');
-        btn.classList.add('bg-green-300', 'hover:bg-green-400');
-        btn.classList.remove('bg-yellow-300', 'hover:bg-yellow-400');
-      }
-      speak(currentInfo);
+    
+    function setInfo(text) { 
+        currentInfo = text; 
+        const infoEl = document.getElementById('info-text'); 
+        infoEl.style.opacity = 0; 
+        setTimeout(() => { infoEl.textContent = text; infoEl.style.opacity = 1; }, 200); 
+    }
+    
+    function speakInfo() { 
+        if (!ttsEnabled) { 
+            ttsEnabled = true; 
+            document.getElementById('speak-btn').classList.add('bg-green-100', 'text-green-600'); 
+        } 
+        speak(currentInfo); 
     }
 
-    /* ====== Router (DIKEMASKINI) ====== */
+    /* --- ROUTER --- */
     function loadActivity(n) {
       currentActivity = n;
       const content = document.getElementById('activity-content');
-      if (n === 1) return loadEstimationLab(content);
-      if (n === 2) return loadRoundingHill(content, 'puluh');
-      if (n === 3) return loadRoundingHill(content, 'ratus');
-      // DIUBAH: Memanggil fungsi baru
-      if (n === 4) return loadDeconMachine(content); 
-      if (n === 5) return loadClickNumberActivity(content);
+      content.style.opacity = 0;
+      setTimeout(() => {
+          if (n === 1) loadEstimationLab(content);
+          if (n === 2) loadRoundingHill(content, 'puluh');
+          if (n === 3) loadRoundingHill(content, 'ratus');
+          if (n === 4) loadDeconMachine(content);
+          if (n === 5) loadClickNumberActivity(content);
+          content.style.opacity = 1;
+      }, 200);
     }
 
-    /* ====== Aktiviti 1: Makmal Anggaran ====== */
-    function loadEstimationLab(content) {
-      setInfo("Lihat guli di balang kanan. Guna 'slider' untuk agak jumlahnya.");
-      content.innerHTML = `
-        <h3 class="text-2xl font-bold text-blue-600 mb-6">🎯 Makmal Anggaran</h3>
-        <div class="flex flex-col md:flex-row items-center justify-center gap-8 mb-6">
-          <div class="text-center">
-            <div class="guli-jar-ref"><div class="guli-fill-ref"></div></div>
-            <div class="text-lg font-semibold text-blue-700 mt-2">Ini 100 Guli</div>
-          </div>
-          <div class="text-center">
-            <div id="jar-mystery" class="guli-jar-mystery"><div id="guli-fill" class="guli-fill-mystery"></div></div>
-            <div class="text-lg font-semibold text-red-700 mt-2">Agak Anda?</div>
-          </div>
-        </div>
-        <div class="max-w-md mx-auto">
-          <div class="text-center mb-4">
-            <label for="est-slider" class="text-lg font-semibold text-gray-700">Anggaran Saya:</label>
-            <div id="est-label" class="text-3xl font-bold text-gray-900">100</div>
-          </div>
-          <input type="range" id="est-slider" min="100" max="1000" value="100" step="10" class="mx-auto"
-                 oninput="document.getElementById('est-label').textContent = this.value">
-        </div>
-        <div id="est-result" class="mt-6 text-xl font-semibold min-h-8"></div>
-        <div class="mt-4">
-          <button id="est-check-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl text-lg font-bold">✅ Semak Anggaran</button>
-          <button id="est-new-btn" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-xl text-lg font-bold hidden">🔄 Cuba Lagi</button>
-        </div>
-      `;
-      setupEstimationGame();
-    }
-    
-    function setupEstimationGame() {
-      const targetAnswer = r(120, 990); 
-      const guliFill = document.getElementById('guli-fill');
-      const slider = document.getElementById('est-slider');
-      const label = document.getElementById('est-label');
-      const checkBtn = document.getElementById('est-check-btn');
-      const newBtn = document.getElementById('est-new-btn');
-      const resultEl = document.getElementById('est-result');
-      const percentFill = (targetAnswer / 1000) * 100;
-      guliFill.style.transition = 'none'; 
-      guliFill.style.height = `${percentFill}%`; 
-      slider.disabled = false;
-      checkBtn.disabled = false;
-      checkBtn.classList.remove('hidden');
-      newBtn.classList.add('hidden');
-      resultEl.textContent = "";
-      label.textContent = slider.value;
-      checkBtn.onclick = () => {
-        const userGuess = parseInt(slider.value);
-        const diff = Math.abs(userGuess - targetAnswer);
-        slider.disabled = true;
-        checkBtn.disabled = true;
-        checkBtn.classList.add('hidden');
-        newBtn.classList.remove('hidden');
-        let msg;
-        if (diff <= 50) {
-          msg = `Hebat! Tekaan anda (${userGuess}) sangat hampir! Jawapannya ${targetAnswer}.`;
-          resultEl.className = "mt-6 text-xl font-semibold text-green-600";
-        } else if (diff <= 150) {
-          msg = `Bagus! Tekaan anda (${userGuess}) agak dekat. Jawapannya ${targetAnswer}.`;
-          resultEl.className = "mt-6 text-xl font-semibold text-yellow-600";
-        } else {
-          msg = `Tekaan anda (${userGuess}) agak jauh. Jawapan sebenar ialah ${targetAnswer}.`;
-          resultEl.className = "mt-6 text-xl font-semibold text-red-600";
-        }
-        resultEl.textContent = msg;
-        setInfo(msg); speak(msg);
-      };
-      newBtn.onclick = () => setupEstimationGame();
-    }
-
-    /* ====== Aktiviti 2 & 3: Bukit Bundar ====== */
-    function loadRoundingHill(content, type) {
-      const title = type === 'puluh' ? '⛰️ Bukit Bundar (Puluh)' : '⛰️ Bukit Bundar (Ratus)';
-      const color = type === 'puluh' ? 'green' : 'purple';
-      setInfo(`Lihat nombor di atas bukit. Tekan 'Bundarkan!' untuk lihat ia bergolek.`);
-      content.innerHTML = `
-        <h3 class="text-2xl font-bold text-${color}-600 mb-6">${title}</h3>
-        <div class="text-center mb-4">
-          <div class="text-lg text-gray-600">Nombor untuk dibundarkan:</div>
-          <div id="r-number" class="text-6xl font-bold text-gray-800">...</div>
-        </div>
-        <div class="round-line-container">
-          <div class="round-line"></div>
-          <div class="round-point start"></div>
-          <span id="r-start" class="round-label" style="left: 0;">0</span>
-          <div class="round-point peak"></div>
-          <span id="r-peak" class="round-label" style="left: 50%;">Puncak (5)</span>
-          <div class="round-point end"></div>
-          <span id="r-end" class="round-label" style="right: -20px; left: auto; transform: none;">10</span>
-          <div id="r-marker" class="round-marker" style="left: 50%;">...</div>
-        </div>
-        <div id="r-result" class="mt-12 text-xl font-semibold min-h-8 text-center"></div>
-        <div class="mt-4 text-center">
-          <button id="r-run-btn" class="bg-${color}-500 hover:bg-${color}-600 text-white px-6 py-3 rounded-xl text-lg font-bold">🚀 Bundarkan!</button>
-          <button id="r-new-btn" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-xl text-lg font-bold hidden">🔄 Soalan Baharu</button>
-        </div>
-      `;
-      setupRoundingGame(type);
-    }
-
-    function setupRoundingGame(type) {
-      let num, start, end, peak, correctRounded;
-      if (type === 'puluh') {
-        num = r(101, 998); 
-        start = Math.floor(num / 10) * 10;
-        end = start + 10;
-        peak = start + 5;
-        correctRounded = (num >= peak) ? end : start;
-      } else { 
-        num = r(101, 998);
-        start = Math.floor(num / 100) * 100;
-        end = start + 100;
-        peak = start + 50;
-        correctRounded = (num >= peak) ? end : start;
-      }
-      const runBtn = document.getElementById('r-run-btn');
-      runBtn.dataset.answer = correctRounded;
-      runBtn.dataset.num = num;
-      document.getElementById('r-number').textContent = num;
-      document.getElementById('r-start').textContent = start;
-      document.getElementById('r-end').textContent = end;
-      document.getElementById('r-peak').textContent = `Puncak (${peak})`;
-      const marker = document.getElementById('r-marker');
-      marker.textContent = num;
-      const markerPos = ((num - start) / (end - start)) * 100;
-      marker.style.transition = 'none'; 
-      marker.style.left = `${markerPos}%`;
-      const newBtn = document.getElementById('r-new-btn');
-      const resultEl = document.getElementById('r-result');
-      runBtn.disabled = false;
-      runBtn.classList.remove('hidden');
-      newBtn.classList.add('hidden');
-      resultEl.textContent = "";
-      runBtn.onclick = () => {
-        const answer = parseInt(runBtn.dataset.answer);
-        const targetPos = (answer === end) ? '100%' : '0%';
-        marker.style.transition = 'left 1.5s cubic-bezier(0.68, -0.55, 0.27, 1.55)';
-        marker.style.left = targetPos;
-        runBtn.disabled = true;
-        runBtn.classList.add('hidden');
-        newBtn.classList.remove('hidden');
-        const msg = `${num} dibundarkan menjadi ${answer}!`;
-        resultEl.textContent = msg;
-        setInfo(msg); speak(msg);
-      };
-      newBtn.onclick = () => setupRoundingGame(type);
-    }
-    
-    /* ====== Aktiviti 4: Mesin Cerakin (BARU) ====== */
-    function loadDeconMachine(content) {
-      setInfo("Guna butang + / - untuk padankan 'Jumlah Anda' dengan 'Nombor Sasaran'.");
-      content.innerHTML = `
-        <h3 class="text-2xl font-bold text-orange-600 mb-6">⚙️ Mesin Cerakin Nombor</h3>
-        
-        <div class="bg-gray-50 rounded-2xl p-6 max-w-sm mx-auto mb-6">
-          <div class="text-sm uppercase tracking-wide text-gray-500">Nombor Sasaran</div>
-          <div id="cerakin-target" class="text-7xl font-black text-gray-900 leading-none">...</div>
-        </div>
-
-        <div class="max-w-sm mx-auto">
-          <div class="cerakin-slot">
-            <span class="text-lg font-semibold text-gray-600">RATUS</span>
-            <div class="cerakin-stepper">
-              <button id="r-minus">-</button>
-              <span id="r-val" class="cerakin-value text-orange-700">0</span>
-              <button id="r-plus">+</button>
-            </div>
-          </div>
-          <div class="cerakin-slot">
-            <span class="text-lg font-semibold text-gray-600">PULUH</span>
-            <div class="cerakin-stepper">
-              <button id="p-minus">-</button>
-              <span id="p-val" class="cerakin-value text-orange-700">0</span>
-              <button id="p-plus">+</button>
-            </div>
-          </div>
-          <div class="cerakin-slot">
-            <span class="text-lg font-semibold text-gray-600">SA</span>
-            <div class="cerakin-stepper">
-              <button id="s-minus">-</button>
-              <span id="s-val" class="cerakin-value text-orange-700">0</span>
-              <button id="s-plus">+</button>
-            </div>
-          </div>
-        </div>
-        
-        <div id="cerakin-total-box" class="max-w-sm mx-auto mt-6 text-center">
-          <div class="text-sm font-semibold text-gray-600">Jumlah Anda:</div>
-          <div id="cerakin-calc" class="text-lg text-gray-500">0 + 0 + 0</div>
-          <div id="cerakin-total" class="text-4xl font-bold text-gray-800">= 0</div>
-        </div>
-
-        <div class="mt-6 text-center">
-          <button id="cerakin-new" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl">🔄 Nombor Baharu</button>
-        </div>
-      `;
-
-      // Logik JavaScript untuk Mesin Cerakin
-      const targetNum = r(101, 999);
-      let currentRatus = 0;
-      let currentPuluh = 0;
-      let currentSa = 0;
-
-      // Dapatkan Elemen
-      const targetEl = document.getElementById('cerakin-target');
-      const rVal = document.getElementById('r-val'), pVal = document.getElementById('p-val'), sVal = document.getElementById('s-val');
-      const rPlus = document.getElementById('r-plus'), rMinus = document.getElementById('r-minus');
-      const pPlus = document.getElementById('p-plus'), pMinus = document.getElementById('p-minus');
-      const sPlus = document.getElementById('s-plus'), sMinus = document.getElementById('s-minus');
-      const totalBoxEl = document.getElementById('cerakin-total-box');
-      const calcEl = document.getElementById('cerakin-calc');
-      const totalEl = document.getElementById('cerakin-total');
-      const newBtn = document.getElementById('cerakin-new');
-      
-      const allSteppers = [rPlus, rMinus, pPlus, pMinus, sPlus, sMinus];
-
-      // Fungsi 'Update' Teras
-      function updateDisplay() {
-        let total = currentRatus + currentPuluh + currentSa;
-        
-        // Kemaskini paparan nilai
-        rVal.textContent = currentRatus;
-        pVal.textContent = currentPuluh;
-        sVal.textContent = currentSa;
-        
-        // Kemaskini paparan jumlah
-        calcEl.textContent = `${currentRatus} + ${currentPuluh} + ${currentSa}`;
-        totalEl.textContent = `= ${total}`;
-        
-        // Urus status butang
-        rMinus.disabled = (currentRatus === 0);
-        rPlus.disabled = (currentRatus === 900);
-        pMinus.disabled = (currentPuluh === 0);
-        pPlus.disabled = (currentPuluh === 90);
-        sMinus.disabled = (currentSa === 0);
-        sPlus.disabled = (currentSa === 9);
-        
-        // Semak jika menang
-        if (total === targetNum) {
-          totalBoxEl.classList.add('success');
-          totalEl.textContent = `= ${total} (Padan!)`;
-          const msg = `Syabas! ${currentRatus} tambah ${currentPuluh} tambah ${currentSa} ialah ${totalNum}.`;
-          setInfo(msg); speak(msg);
-          allSteppers.forEach(btn => btn.disabled = true);
-        } else {
-          totalBoxEl.classList.remove('success');
-          setInfo("Teruskan menambah nilai sehingga jumlah anda padan dengan nombor sasaran.");
-        }
-      }
-
-      // Pasang Event Listeners
-      rPlus.onclick = () => { currentRatus += 100; updateDisplay(); }
-      rMinus.onclick = () => { currentRatus -= 100; updateDisplay(); }
-      pPlus.onclick = () => { currentPuluh += 10; updateDisplay(); }
-      pMinus.onclick = () => { currentPuluh -= 10; updateDisplay(); }
-      sPlus.onclick = () => { currentSa += 1; updateDisplay(); }
-      sMinus.onclick = () => { currentSa -= 1; updateDisplay(); }
-      
-      newBtn.onclick = () => loadDeconMachine(content); // Muat semula aktiviti
-
-      // Persediaan Awal
-      targetEl.textContent = targetNum;
-      updateDisplay();
-    }
-
-
-    /* ====== Aktiviti 5: Klik Nombor ====== */
-    function loadClickNumberActivity(content) {
-      setInfo("Klik mana-mana nombor untuk meneroka cara ia dibundarkan.");
-      const numbers = [121, 289, 135, 398, 750, 991];
-      content.innerHTML = `
-        <h3 class="text-2xl font-bold text-red-600 mb-6">📚 Klik Nombor untuk Belajar</h3>
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-          ${numbers.map(num => `
-            <div class="number-card bg-red-100 hover:bg-red-200 border-2 border-red-300 rounded-xl p-6 text-center"
-                 onclick="clickNumber(${num})">
-              <div class="text-4xl font-bold text-red-800">${num}</div>
-            </div>
-          `).join('')}
-        </div>
-        <div id="number-info" class="mt-6 p-4 bg-red-50 rounded-lg text-center text-lg font-semibold text-red-800 min-h-16">
-          Sentuh nombor untuk meneroka pembundaran.
-        </div>
-      `;
-    }
-    
-    function clickNumber(num) {
-      const roundedTen = Math.round(num / 10) * 10;
-      const roundedHundred = Math.round(num / 100) * 100;
-      const msg = `Nombor ${num}. Dibundar kepada puluh terdekat: ${roundedTen}. Dibundar kepada ratus terdekat: ${roundedHundred}.`;
-      document.getElementById('number-info').textContent = msg; 
-      setInfo(msg); 
-      speak(msg);
-    }
-
-    /* ====== Kawalan Umum ====== */
     function clearActivity() {
-      currentActivity = 0;
-      document.getElementById('activity-content').innerHTML = `
-        <div class="text-center py-16">
-          <div class="text-6xl mb-4">🔢</div>
-          <h2 class="text-3xl font-bold text-gray-800 mb-4">Kemahiran Pemulihan: Anggaran & Bundar (100-1000)</h2>
-          <p class="text-xl text-gray-600 mb-8">Pilih aktiviti di bawah untuk meneroka anggaran dan pembundaran.</p>
-          <div class="text-4xl">👇</div>
-        </div>
-      `;
-      setInfo("Pilih aktiviti untuk mula belajar!");
+        currentActivity = 0;
+        document.getElementById('activity-content').innerHTML = `<div class="py-10 text-center"><div class="text-8xl mb-6 animate-bounce">💯</div><h2 class="text-5xl font-bold text-emerald-600 mb-4">Kemahiran Pemulihan</h2><p class="text-2xl text-slate-500 mb-8 font-semibold">Pilih butang di bawah.</p></div>`;
+        setInfo("Pilih aktiviti untuk mula.");
     }
-    
-    function nextActivity() {
-      if (currentActivity === 0) return loadActivity(1);
-      if (currentActivity < 5) return loadActivity(currentActivity + 1);
-      return loadActivity(1); 
+    function nextActivity() { let next = currentActivity + 1; if (next > 5) next = 1; loadActivity(next); }
+
+    /* =========================================
+       AKTIVITI 1: Makmal Anggaran
+       ========================================= */
+    function loadEstimationLab(content) {
+        setInfo("Gerakkan slider untuk mengagak jumlah guli.");
+        content.innerHTML = `
+            <h3 class="text-4xl font-bold text-blue-500 mb-6 text-center">🎯 Makmal Anggaran</h3>
+            
+            <div class="flex justify-center gap-12 mb-8 items-end">
+                <div class="text-center">
+                    <div class="jar-container relative">
+                        <div class="jar-lid"></div>
+                        <div class="guli-fill ref" style="height: 20%"></div>
+                        <div class="absolute bottom-2 w-full text-center font-bold text-blue-800">100</div>
+                    </div>
+                    <div class="mt-2 font-bold text-slate-500">Rujukan</div>
+                </div>
+
+                <div class="text-center">
+                    <div class="jar-container relative">
+                        <div class="jar-lid"></div>
+                        <div id="guli-mystery" class="guli-fill" style="height: 0%"></div>
+                        <div class="absolute bottom-2 w-full text-center font-bold text-red-800">?</div>
+                    </div>
+                    <div class="mt-2 font-bold text-slate-500">Misteri</div>
+                </div>
+            </div>
+
+            <div class="max-w-md mx-auto bg-slate-50 p-6 rounded-2xl border-2 border-slate-200 text-center">
+                <div class="text-lg font-bold text-slate-400 uppercase mb-2">Anggaran Saya</div>
+                <div id="est-val" class="text-5xl font-black text-slate-700 mb-4">100</div>
+                
+                <input type="range" id="est-slider" min="100" max="500" value="100" step="10" 
+                       class="w-full h-4 bg-slate-200 rounded-lg appearance-none cursor-pointer mb-6 accent-blue-500"
+                       oninput="document.getElementById('est-val').textContent = this.value">
+                
+                <div class="flex justify-center gap-4">
+                    <button id="btn-check" class="btn-3d bg-blue-500 text-white font-bold py-3 px-6 rounded-xl text-xl">✅ Semak</button>
+                    <button id="btn-new" class="btn-3d bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl text-xl hidden" onclick="setupEstimation()">🔄 Baru</button>
+                </div>
+                
+                <div id="est-msg" class="mt-4 text-lg font-bold text-slate-500 min-h-[30px]"></div>
+            </div>
+        `;
+        setupEstimation();
     }
 
-    if ('speechSynthesis' in window) {
-      setInterval(() => { if (window.speechSynthesis.paused) window.speechSynthesis.resume(); }, 1000);
+    function setupEstimation() {
+        const target = r(150, 480);
+        const fillHeight = (target / 500) * 100;
+        
+        document.getElementById('guli-mystery').style.height = fillHeight + '%';
+        document.getElementById('est-msg').textContent = "";
+        document.getElementById('est-slider').value = 100;
+        document.getElementById('est-val').textContent = 100;
+        document.getElementById('est-slider').disabled = false;
+        
+        const btnCheck = document.getElementById('btn-check');
+        const btnNew = document.getElementById('btn-new');
+        
+        btnCheck.classList.remove('hidden');
+        btnNew.classList.add('hidden');
+        
+        btnCheck.onclick = () => {
+            const guess = parseInt(document.getElementById('est-slider').value);
+            const diff = Math.abs(guess - target);
+            let msg = "";
+            
+            if(diff <= 30) {
+                msg = `HEBAT! Jawapan: ${target}.`;
+                triggerWin();
+                speak("Hebat! Sangat tepat.");
+            } else if (diff <= 80) {
+                msg = `Boleh tahan! Jawapan: ${target}.`;
+                speak("Boleh tahan.");
+            } else {
+                msg = `Cuba lagi. Jawapan: ${target}.`;
+                speak("Cuba lagi.");
+            }
+            
+            document.getElementById('est-msg').textContent = msg;
+            btnCheck.classList.add('hidden');
+            btnNew.classList.remove('hidden');
+            document.getElementById('est-slider').disabled = true;
+        };
     }
+
+    /* =========================================
+       AKTIVITI 2 & 3: Bukit Bundar (PEMBAIKAN POSISI TITIK & BOLA)
+       ========================================= */
+    function loadRoundingHill(content, type) {
+        const title = type === 'puluh' ? 'Bundar Puluh Terdekat' : 'Bundar Ratus Terdekat';
+        const color = type === 'puluh' ? 'emerald' : 'violet';
+        
+        setInfo("Adakah nombor akan turun ke kiri atau kanan?");
+
+        content.innerHTML = `
+            <h3 class="text-4xl font-bold text-${color}-600 mb-6 text-center">⛰️ ${title}</h3>
+            
+            <div class="text-center mb-10">
+                <div class="text-sm font-bold text-slate-400 uppercase">Nombor</div>
+                <div id="rh-num" class="text-7xl font-black text-slate-700">...</div>
+                <div class="mt-2">
+                    <span class="text-xs font-bold text-amber-500 bg-amber-100 px-2 rounded uppercase">Puncak</span>
+                    <span id="txt-mid" class="font-bold text-amber-600 text-xl">5</span>
+                </div>
+            </div>
+
+            <div class="hill-container max-w-2xl mx-auto">
+                <svg class="hill-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                    <path d="M 20,90 Q 150,-50 280,90" fill="none" stroke="#94a3b8" stroke-width="4" stroke-linecap="round" />
+                    <line x1="0" y1="90" x2="300" y2="90" stroke="#cbd5e1" stroke-width="4" />
+                </svg>
+                
+                <div class="hill-point" style="left: 6.7%; bottom: 10%;"></div>
+                <span id="txt-start" class="hill-label" style="left: 6.7%; bottom: -10px;">0</span>
+                
+                <div class="hill-point" style="left: 50%; bottom: 80%; border-color: #f59e0b; width: 12px; height: 12px;"></div>
+                
+                <div class="hill-point" style="left: 93.3%; bottom: 10%;"></div>
+                <span id="txt-end" class="hill-label" style="left: 93.3%; bottom: -10px;">10</span>
+
+                <div id="hill-ball" class="hill-ball" style="left: 6.7%; bottom: 10%;">?</div>
+            </div>
+
+            <div id="rh-res" class="text-center font-bold text-3xl text-slate-700 min-h-[40px] mt-8 mb-4"></div>
+
+            <div class="flex justify-center gap-4">
+                <button id="rh-go" class="btn-3d bg-${color}-500 text-white font-bold py-3 px-8 rounded-xl text-xl">🚀 Bundarkan!</button>
+                
+                <button id="rh-replay" class="btn-3d bg-blue-500 text-white font-bold py-3 px-6 rounded-xl text-xl hidden">↩️ Ulang</button>
+                <button id="rh-new" class="btn-3d bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl text-xl hidden">Soalan Baru ➡️</button>
+            </div>
+        `;
+        setupRounding(type);
+    }
+
+    function setupRounding(type) {
+        let num, start, end, mid, ans;
+        
+        // Generate Number
+        if (type === 'puluh') {
+            num = r(101, 998);
+            start = Math.floor(num/10)*10;
+            end = start + 10;
+            mid = start + 5;
+        } else {
+            num = r(101, 998);
+            start = Math.floor(num/100)*100;
+            end = start + 100;
+            mid = start + 50;
+        }
+        
+        ans = (num >= mid) ? end : start;
+
+        // Update UI Texts
+        document.getElementById('rh-num').textContent = num;
+        document.getElementById('txt-start').textContent = start;
+        document.getElementById('txt-end').textContent = end;
+        document.getElementById('txt-mid').textContent = mid;
+        document.getElementById('rh-res').textContent = "";
+        
+        // Calculate initial ball position on curve (t=0..1)
+        // Curve logic: Quadratic Bezier P0(20,90), P1(150,-50), P2(280,90)
+        // Simplified visual calc:
+        const t = (num - start) / (end - start);
+        // Map t to percentages: x goes from 6.7% to 93.3% (range 86.6%)
+        const startLeft = 6.7 + (t * 86.6);
+        // y approximates parabola. Peak at t=0.5 is 80%, base is 10%.
+        // formula: -280*t*t + 280*t + 10 (based on SVG y)
+        const startBottom = (-280 * t * t + 280 * t + 10);
+        
+        const ball = document.getElementById('hill-ball');
+        ball.textContent = num;
+        ball.style.transition = 'none';
+        ball.style.left = `${startLeft}%`;
+        ball.style.bottom = `${startBottom}%`;
+        ball.style.backgroundColor = '#3b82f6';
+
+        // Buttons
+        const btnGo = document.getElementById('rh-go');
+        const btnReplay = document.getElementById('rh-replay');
+        const btnNew = document.getElementById('rh-new');
+        
+        btnGo.classList.remove('hidden');
+        btnReplay.classList.add('hidden');
+        btnNew.classList.add('hidden');
+        
+        // 1. START Animation
+        btnGo.onclick = () => {
+            btnGo.classList.add('hidden');
+            ball.style.transition = 'left 1.5s ease-in, bottom 1.5s ease-in, background-color 0.3s';
+            
+            if (ans === end) {
+                // Roll Right
+                ball.style.left = '93.3%';
+                ball.style.bottom = '10%';
+                setInfo(`Nombor ${num} lebih dekat dengan ${end}.`);
+                ball.style.backgroundColor = '#10b981';
+            } else {
+                // Roll Left
+                ball.style.left = '6.7%';
+                ball.style.bottom = '10%';
+                setInfo(`Nombor ${num} kurang dari separuh. Kembali ke ${start}.`);
+                ball.style.backgroundColor = '#ef4444';
+            }
+            
+            setTimeout(() => {
+                document.getElementById('rh-res').textContent = `Jawapan: ${ans}`;
+                triggerWin();
+                speak(`Jawapannya ialah ${ans}`);
+                btnReplay.classList.remove('hidden');
+                btnNew.classList.remove('hidden');
+            }, 1500);
+        };
+        
+        // 2. REPLAY Animation
+        btnReplay.onclick = () => {
+            ball.style.transition = 'none';
+            ball.style.left = `${startLeft}%`;
+            ball.style.bottom = `${startBottom}%`;
+            ball.style.backgroundColor = '#3b82f6';
+            document.getElementById('rh-res').textContent = "";
+            
+            btnReplay.classList.add('hidden');
+            btnNew.classList.add('hidden');
+            btnGo.classList.remove('hidden');
+            setInfo("Sedia untuk bundarkan semula.");
+        };
+        
+        // 3. NEW Question
+        btnNew.onclick = () => setupRounding(type);
+    }
+
+    /* =========================================
+       AKTIVITI 4: Mesin Cerakin
+       ========================================= */
+    let cm = { target:0, curR:0, curP:0, curS:0 };
+
+    function loadDeconMachine(content) {
+        cm.target = r(101, 999);
+        cm.curR=0; cm.curP=0; cm.curS=0;
+        setInfo("Padankan jumlah anda dengan nombor sasaran.");
+
+        content.innerHTML = `
+            <h3 class="text-4xl font-bold text-orange-500 mb-6 text-center">⚙️ Mesin Cerakin</h3>
+            
+            <div class="flex flex-col items-center mb-6">
+                <div class="text-sm font-bold text-slate-400 uppercase">SASARAN</div>
+                <div class="text-7xl font-black text-slate-700">${cm.target}</div>
+            </div>
+
+            <div class="max-w-md mx-auto space-y-4">
+                <div class="cerakin-row">
+                    <span class="font-bold text-pink-600 text-xl w-24">RATUS</span>
+                    <div class="flex items-center gap-4">
+                        <button onclick="adjCerakin('r', -100)" class="cerakin-ctrl minus">-</button>
+                        <span id="val-r" class="text-3xl font-bold text-slate-700 w-24 text-center">0</span>
+                        <button onclick="adjCerakin('r', 100)" class="cerakin-ctrl plus">+</button>
+                    </div>
+                </div>
+
+                <div class="cerakin-row">
+                    <span class="font-bold text-blue-600 text-xl w-24">PULUH</span>
+                    <div class="flex items-center gap-4">
+                        <button onclick="adjCerakin('p', -10)" class="cerakin-ctrl minus">-</button>
+                        <span id="val-p" class="text-3xl font-bold text-slate-700 w-24 text-center">0</span>
+                        <button onclick="adjCerakin('p', 10)" class="cerakin-ctrl plus">+</button>
+                    </div>
+                </div>
+
+                <div class="cerakin-row">
+                    <span class="font-bold text-amber-600 text-xl w-24">SA</span>
+                    <div class="flex items-center gap-4">
+                        <button onclick="adjCerakin('s', -1)" class="cerakin-ctrl minus">-</button>
+                        <span id="val-s" class="text-3xl font-bold text-slate-700 w-24 text-center">0</span>
+                        <button onclick="adjCerakin('s', 1)" class="cerakin-ctrl plus">+</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-6 bg-orange-50 p-4 rounded-xl border-2 border-orange-100 inline-block w-full max-w-md">
+                <div class="text-lg font-bold text-slate-500 mb-1">Jumlah Anda</div>
+                <div id="total-display" class="text-4xl font-black text-orange-600">0</div>
+            </div>
+
+            <div class="text-center mt-6">
+                <button onclick="loadActivity(4)" class="btn-3d bg-slate-400 text-white font-bold py-2 px-6 rounded-xl text-lg">🔄 Soalan Baru</button>
+            </div>
+        `;
+    }
+
+    function adjCerakin(type, val) {
+        if (type === 'r') { if (cm.curR + val >= 0 && cm.curR + val <= 900) cm.curR += val; }
+        else if (type === 'p') { if (cm.curP + val >= 0 && cm.curP + val <= 90) cm.curP += val; }
+        else if (type === 's') { if (cm.curS + val >= 0 && cm.curS + val <= 9) cm.curS += val; }
+        updateCerakinUI();
+    }
+
+    function updateCerakinUI() {
+        document.getElementById('val-r').textContent = cm.curR;
+        document.getElementById('val-p').textContent = cm.curP;
+        document.getElementById('val-s').textContent = cm.curS;
+        
+        const total = cm.curR + cm.curP + cm.curS;
+        const disp = document.getElementById('total-display');
+        disp.textContent = total;
+
+        if (total === cm.target) {
+            disp.classList.replace('text-orange-600', 'text-green-600');
+            disp.innerHTML += " ✅ TEPAT!";
+            triggerWin();
+            speak("Tahniah! Jawapan tepat.");
+            document.querySelectorAll('.cerakin-ctrl').forEach(b => b.disabled = true);
+        } else {
+            disp.classList.replace('text-green-600', 'text-orange-600');
+            document.querySelectorAll('.cerakin-ctrl').forEach(b => b.disabled = false);
+        }
+    }
+
+    /* =========================================
+       AKTIVITI 5: Klik Nombor
+       ========================================= */
+    function loadClickNumberActivity(content) {
+      setInfo("Klik nombor untuk lihat info bundar.");
+      const numbers = [123, 458, 295, 612, 879, 344];
+      
+      content.innerHTML = `
+        <h3 class="text-4xl font-bold text-rose-500 mb-6 text-center">📚 Klik Nombor</h3>
+        
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
+            ${numbers.map(n => `
+                <button onclick="showNumInfo(${n})" class="btn-3d bg-white border-2 border-rose-100 text-rose-600 p-6 rounded-2xl text-4xl font-black shadow-sm hover:bg-rose-50">
+                    ${n}
+                </button>
+            `).join('')}
+        </div>
+
+        <div id="info-box" class="mt-8 mx-auto max-w-xl bg-rose-50 border-2 border-rose-200 rounded-2xl p-6 text-center min-h-[140px] flex flex-col justify-center items-center">
+            <div class="text-slate-400 font-bold text-xl">Pilih nombor di atas</div>
+        </div>
+      `;
+    }
+
+    function showNumInfo(n) {
+        const rRound = Math.round(n/100)*100;
+        const pRound = Math.round(n/10)*10;
+        
+        const box = document.getElementById('info-box');
+        box.innerHTML = `
+            <div class="text-6xl font-black text-rose-700 mb-4">${n}</div>
+            <div class="flex justify-around w-full text-left">
+                <div class="bg-white p-4 rounded-xl border border-rose-100 shadow-sm">
+                    <div class="text-xs text-slate-400 font-bold uppercase mb-1">Bundar Puluh</div>
+                    <div class="text-3xl font-bold text-rose-600">${pRound}</div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-rose-100 shadow-sm">
+                    <div class="text-xs text-slate-400 font-bold uppercase mb-1">Bundar Ratus</div>
+                    <div class="text-3xl font-bold text-rose-600">${rRound}</div>
+                </div>
+            </div>
+        `;
+        speak(`${n}. Bundar puluh, ${pRound}. Bundar ratus, ${rRound}.`);
+    }
+
+    // Init TTS keepalive
+    if ('speechSynthesis' in window) setInterval(() => { if (window.speechSynthesis.paused) window.speechSynthesis.resume(); }, 1000);
+
   </script>
 </body>
 </html>
